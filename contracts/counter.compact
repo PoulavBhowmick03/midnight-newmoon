@@ -1,0 +1,54 @@
+// ============================================================================
+// Owner-Gated Counter
+// ----------------------------------------------------------------------------
+// PRIVACY MODEL
+//
+// PUBLIC (on-chain ledger state, visible to anyone):
+//   - round: the current counter value
+//   - owner: a hash commitment to the owner's secret key (the hash itself,
+//     never the key)
+//
+// PRIVATE (witness, lives only on the owner's machine, never on-chain):
+//   - localSecretKey(): the owner's 32-byte secret key. It is used inside
+//     the ZK circuit to prove ownership, but the proof reveals nothing
+//     about the key itself.
+//
+// WHAT THE CALLER PROVES WITHOUT REVEALING:
+//   - "I know the secret key whose commitment is stored in `owner`"
+//     (i.e. I am the owner), without ever putting the key on-chain.
+//
+// disclose() USAGE (deliberate):
+//   - In the constructor, the commitment persistentHash(prefix, secretKey)
+//     is written to public state. Compact taints anything derived from a
+//     witness; disclose() marks that we intend to publish the *hash* —
+//     a one-way commitment — while the key stays private.
+// ============================================================================
+
+pragma language_version >= 0.16;
+
+import CompactStandardLibrary;
+
+// Public counter value.
+export ledger round: Counter;
+
+// Public commitment to the owner's secret key.
+export ledger owner: Bytes<32>;
+
+// Private witness: supplied by the owner's local TypeScript runner.
+// Never appears on-chain; only used inside the proof.
+witness localSecretKey(): Bytes<32>;
+
+constructor() {
+  owner = disclose(ownerCommitment(localSecretKey()));
+}
+
+// Anyone can *see* the count; only the key holder can *change* it.
+export circuit increment(): [] {
+  assert(owner == ownerCommitment(localSecretKey()), "Not the counter owner");
+  round.increment(1);
+}
+
+// Domain-separated hash commitment over the secret key.
+export circuit ownerCommitment(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "newmoon:owner:"), sk]);
+}
