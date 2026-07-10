@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# ── Secrets — never commit these ──────────────────────────────
+# Owner secret key (the private witness input)
+.owner-secret
+# Per-network wallet seeds + deploy records
+.midnight-state.json
+# Serialized wallet sync cache
+.midnight-wallet-state/
+# Local private-state database
+counter-private-state/
+*-state/
+
+# NOTE: managed/ is intentionally COMMITTED — the challenge requires
+# the generated circuits + keys to be present in the repo.
